@@ -1,30 +1,66 @@
+
 from fastapi import FastAPI, HTTPException
 from pymongo import MongoClient
 from pydantic import BaseModel
-from bson import ObjectId
+from bson import ObjectId, json_util
+from typing import List
+import json
 
-# Criando uma instância do aplicativo FastAPI
+
+
 app = FastAPI()
 
-# Conectar ao banco de dados MongoDB (substitua a string de conexão conforme necessário)
+
 client = MongoClient("mongodb://localhost:27017/")
-db = client["mongo"]  # Substitua "sua_base_de_dados" pelo nome do seu banco de dados
+db = client["treino"]  
 
-# Definindo um modelo Pydantic para os dados do usuário
-class UserCreate(BaseModel):
-    email: str
-    username: str
 
-# Endpoint para criar um novo usuário
-@app.post("/users/", response_model=dict)
-async def create_user(user: UserCreate):
+
+
+# cria usuario
+@app.post("/users", response_model=dict )
+def create_user(user: str, email: str, dias_semana:int):
     # Verificar se o usuário já existe
-    if db.users.find_one({"email": user.email}):
+    if db.users.find_one({"user": user, "email": email, "dias_semana":dias_semana  }):
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Inserir novo usuário no MongoDB
-    user_data = {"email": user.email, "username": user.username}
+    # jogar usuário no mongo
+    user_data = {"user": user, "email": email, "dias_semana":dias_semana}
     result = db.users.insert_one(user_data)
+    raise HTTPException(status_code=200, detail="Email registered")
     
-    # Retornar os dados do usuário recém-criado
+    # retorna os dados
     return {"id": str(result.inserted_id), **user_data}
+@app.get("/users")
+def get_users():
+    # Retorna informações sobre todos os usuários no banco de dados
+    #precisei tirar o id da lista pois tal quando trazia ele não conseguia iterar
+    users = list(db.users.find({}, {'_id': False}))
+    return users
+
+@app.delete("/users", response_model=dict)
+def delete_user(user: str):
+    # Verificar se o usuário existe
+    existing_user = db.users.find_one({"user": user})
+    if not existing_user:
+        raise HTTPException(status_code=404, detail=f"User {user} not found")
+
+    db.users.delete_one({"user": user})
+    return {"message": f"User {user} deleted successfully"}
+
+
+@app.put("/users", response_model=dict)
+def update_user(user: str, email: str, dias_semana: int):
+    
+    existing_user = db.users.find_one({"user": user})
+    if not existing_user:
+        raise HTTPException(status_code=404, detail=f"User {user} not found")
+
+    
+    updated_data = {"$set": {"email": email, "dias_semana": dias_semana}}
+    db.users.update_one({"user": user}, updated_data)
+
+    
+    return {"user": user, "email": email, "dias_semana": dias_semana}
+
+
