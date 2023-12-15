@@ -64,12 +64,12 @@ def update_user(user:str, sex: str = None, days_week:int =None, focus_group:str=
     #-----------------------------------------------//----------------------------------------------------------------------------------------------
 
     #endpoint para criar planilha de treino
-@app.post("/", response_model=dict)
+@app.post("/spreadsheet", response_model=dict)
 def create_spreadsheet(spreadsheet: str, sex: str, days_week: int, focus_muscle:str=None ):
-    if db.users.find_one({"spreadsheet": spreadsheet, "sex":sex, "days_week":days_week, "focus_muscle":focus_muscle }):
+    if db.muscle.find_one({"spreadsheet": spreadsheet, "sex":sex, "days_week":days_week, "focus_muscle":focus_muscle }):
         raise HTTPException(status_code=400, detail="spreadsheet already registered")
     spreadsheet_data = {"spreadsheet": spreadsheet, "sex":sex, "days_week":days_week, "focus_muscle":focus_muscle }
-    spreadsheet_result = db.users.insert_one(spreadsheet_data)
+    spreadsheet_result = db.muscle.insert_one(spreadsheet_data)
     raise HTTPException(status_code=200, detail="spreadsheet registered")
 
     return {"id": str(spreadsheet_result.inserted_id), **spreadsheet_data}
@@ -91,7 +91,8 @@ def update_spreadsheet(spreadsheet: str=None, sex: str=None, days_week: int=None
     return {"spreadsheet": spreadsheet, "sex":sex, "days_week":days_week, "focus_muscle":focus_muscle}
 
 @app.delete("/spreadsheet", response_model=dict)
-def delete_spreadsheet(user:str):
+def delete_spreadsheet(spreadsheet:str):
+
     existings_spreadsheet = db.muscle.find_one({"spreadsheet": spreadsheet})
     if not existings_spreadsheet:
         raise HTTPException(status_code=400, detail=f"spreadsheet {spreadsheet} not found")
@@ -100,8 +101,8 @@ def delete_spreadsheet(user:str):
 
 
 
-if __name__ == '__main__':
-    load_dotenv()
-    uvicorn.run(app, host='0.0.0.0', port=8000)
+# if __name__ == '__main__':
+#     load_dotenv()
+#     uvicorn.run(app, host='0.0.0.0', port=8000)
 
 
