@@ -1,5 +1,4 @@
-
-
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, HTTPException
 import uvicorn
 from pymongo import MongoClient
@@ -10,8 +9,15 @@ from typing import List, Optional
 
 
 app = FastAPI()
-client = MongoClient("mongodb://localhost:27017/")
+client = MongoClient("mongodb://admin:123@localhost:27017")
 db = client["treino"]  
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permitir todas as origens
+    allow_credentials=True,
+    allow_methods=["*"],  # Permitir todos os métodos HTTP
+    allow_headers=["*"],  # Permitir todos os cabeçalhos
+)
 
 
 
@@ -28,11 +34,11 @@ def create_user(user:str, sex: str):
     raise HTTPException(status_code=200, detail="User registered")
 @app.post("/planilha")
 def planilha(data:dict):
-    result = list(db.users.find({'dias_semana':data['dias_semana']}, {'_id':False}))
+    result = list(db.users.find({'dias_semana':int(data['dias_semana'])}, {'_id':False}))
     if result:
         return result[0]
     else:
-        return 'não temos planilha para esses dias, vamos elaborar e enviar'
+        return {'teste':'não temos planilha para esses dias, vamos elaborar e enviar'}
 @app.get("/user")
 def get_users():
     # Retorna informações sobre todos os usuários no banco de dados
